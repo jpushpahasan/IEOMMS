@@ -1,0 +1,7 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "ieomms-api", "runtimeExecutable": "node", "runtimeArgs": ["server/index.ts"], "port": 4100 },
+    { "name": "ieomms-web", "runtimeExecutable": "npx", "runtimeArgs": ["vite"], "port": 5180 }
+  ]
+}
