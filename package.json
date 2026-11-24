@@ -1,0 +1,59 @@
+{
+    "name": "ieomms",
+    "version": "0.1.0",
+    "private": true,
+    "description": "International Employee Onboarding & Mobility Management System (IEOMMS)",
+    "type": "module",
+    "engines": {
+        "node": ">=22.18"
+    },
+    "scripts": {
+        "dev:api": "node --watch server/index.ts",
+        "dev:web": "vite",
+        "build": "vite build",
+        "start": "node server/index.ts",
+        "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p client/tsconfig.json --noEmit",
+        "db:reset": "node server/scripts/reset.ts",
+        "db:demo": "node server/scripts/reset.ts --demo",
+        "backup": "node server/scripts/backup.ts",
+        "test": "node --test server/tests/"
+    },
+    "dependencies": {
+        "@electric-sql/pglite": "0.2.17",
+        "bcryptjs": "2.4.3",
+        "cookie-parser": "1.4.7",
+        "exceljs": "4.4.0",
+        "express": "4.22.3",
+        "express-rate-limit": "7.5.0",
+        "helmet": "8.0.0",
+        "multer": "1.4.5-lts.1",
+        "nodemailer": "10.6.1",
+        "pdfkit": "0.15.2",
+        "pg": "8.13.1"
+    },
+    "devDependencies": {
+        "@tailwindcss/vite": "4.1.11",
+        "@types/bcryptjs": "2.4.6",
+        "@types/cookie-parser": "1.4.8",
+        "@types/express": "4.17.21",
+        "@types/multer": "1.4.12",
+        "@types/node": "22.13.4",
+        "@types/nodemailer": "6.4.17",
+        "@types/pdfkit": "0.13.9",
+        "@types/pg": "8.11.11",
+        "@types/react": "18.3.18",
+        "@types/react-dom": "18.3.5",
+        "@vitejs/plugin-react": "4.3.4",
+        "lucide-react": "0.474.0",
+        "react": "18.3.1",
+        "react-dom": "18.3.1",
+        "react-router-dom": "6.28.2",
+        "recharts": "2.15.1",
+        "tailwindcss": "4.1.11",
+        "typescript": "5.8.3",
+        "vite": "6.1.0"
+    },
+    "overrides": {
+        "uuid": "11.1.1"
+    }
+}
