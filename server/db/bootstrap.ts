@@ -7,7 +7,10 @@ import { hashPassword } from '../lib/auth.ts';
 import { ACTIVITY_CATALOGUE, DEFAULT_COURSES, DEFAULT_UNIFORM_ITEMS } from '../lib/catalogue.ts';
 
 export async function bootstrap(opts: { adminPassword?: string; quiet?: boolean } = {}) {
+  let created: { password: string; generated: boolean } | null = null;
   await db.tx(async (q) => {
+    // Several serverless instances can start at once: run the seeding one at a time.
+    await q.query('SELECT pg_advisory_xact_lock(41004101)');
     for (const [code, p] of Object.entries(PERMISSIONS)) {
       await q.query(`INSERT INTO permissions(code, module, description) VALUES ($1,$2,$3)
         ON CONFLICT (code) DO UPDATE SET module = EXCLUDED.module, description = EXCLUDED.description`, [code, p.module, p.description]);
@@ -49,20 +52,22 @@ export async function bootstrap(opts: { adminPassword?: string; quiet?: boolean 
     if (!(await q.query('SELECT 1 FROM onboarding_templates LIMIT 1')).rows.length) {
       await q.query(`INSERT INTO onboarding_templates(name, description) VALUES ('Standard onboarding', 'Default template: all 48 activities apply unless a trade or project template says otherwise.')`);
     }
+
+    if (!(await q.query('SELECT 1 FROM users LIMIT 1')).rows.length) {
+      const generated = !(opts.adminPassword || config.adminPassword);
+      const password = opts.adminPassword || config.adminPassword || `Ieo-${crypto.randomBytes(6).toString('base64url')}9a`;
+      await q.query(`INSERT INTO users(username, full_name, password_hash, role_id, must_change_password)
+        SELECT $1, 'System Administrator', $2, id, $3 FROM roles WHERE code = 'super_admin'`,
+        [config.adminUsername, await hashPassword(password), generated]);
+      created = { password, generated };
+    }
   });
 
-  const count = await db.one<{ n: number }>('SELECT count(*)::int AS n FROM users');
-  if (count!.n === 0) {
-    const generated = !(opts.adminPassword || config.adminPassword);
-    const password = opts.adminPassword || config.adminPassword || `Ieo-${crypto.randomBytes(6).toString('base64url')}9a`;
-    await db.query(`INSERT INTO users(username, full_name, password_hash, role_id, must_change_password)
-      SELECT $1, 'System Administrator', $2, id, $3 FROM roles WHERE code = 'super_admin'`,
-      [config.adminUsername, await hashPassword(password), generated]);
-    if (!opts.quiet) {
-      console.log('\n================================================================');
-      console.log(` Initial administrator created:  ${config.adminUsername} / ${password}`);
-      console.log(generated ? ' You will be asked to change this password at first sign-in.' : '');
-      console.log('================================================================\n');
-    }
+  if (created && !opts.quiet) {
+    const { password, generated } = created as { password: string; generated: boolean };
+    console.log('\n================================================================');
+    console.log(` Initial administrator created:  ${config.adminUsername} / ${password}`);
+    console.log(generated ? ' You will be asked to change this password at first sign-in.' : '');
+    console.log('================================================================\n');
   }
 }
