@@ -15,15 +15,15 @@ export const clearanceRouter = express.Router();
 
 export const CHECKS: [key: string, label: string, seqs: number[]][] = [
   ['employment', 'Employment documentation verified', [2, 3, 4, 5, 6, 14]],
-  ['immigration', 'Required immigration formalities completed', [7, 21, 22, 23, 24]],
-  ['medical', 'Required medical examinations completed', [17, 18, 19, 20]],
-  ['training', 'Mandatory training completed', [25, 27, 28, 29, 30, 31, 32]],
-  ['competency', 'Trade competency requirements satisfied', [26]],
-  ['uniform', 'Uniform and PPE distributed', [33, 34, 35, 36, 37, 38]],
-  ['induction', 'Company induction completed', [39, 40, 41, 42, 43, 44]],
+  ['immigration', 'Required immigration formalities completed (incl. health insurance card)', [7, 19, 22, 23, 24, 25]],
+  ['medical', 'Required medical examinations completed', [17, 18, 20, 21]],
+  ['training', 'Mandatory training completed', [26, 28, 29, 30, 31, 32, 33]],
+  ['competency', 'Trade competency requirements satisfied', [27]],
+  ['uniform', 'Uniform and PPE distributed', [34, 35, 36, 37, 38, 39]],
+  ['induction', 'Company induction completed', [40, 41, 42, 43, 44, 45]],
   ['accommodation', 'Accommodation allocated', [10, 13]],
   ['employee_file', 'Employee file verified', [15, 16]],
-  ['site_induction', 'Project / site induction completed', [45]],
+  ['site_induction', 'Project / site induction completed', [46]],
 ];
 
 export async function evaluateClearance(q: Q, cid: number) {

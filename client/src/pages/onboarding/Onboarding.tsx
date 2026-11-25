@@ -22,7 +22,7 @@ export function Onboarding() {
   ];
   return (
     <div className="mx-auto max-w-[1500px]">
-      <PageHeader title="Onboarding activities" subtitle="The 48-step onboarding checklist for every employee, by department and responsible person."
+      <PageHeader title="Onboarding activities" subtitle="The 49-step onboarding checklist for every employee, by department and responsible person."
         actions={can('onboarding.templates') && <Link to="/onboarding/setup" className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"><Settings2 className="size-4" />Templates & catalogue</Link>} />
       <div className="scroll-thin mb-4 flex gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-white p-1 sm:inline-flex">
         {tabs.filter((t) => t[2]).map(([k, l]) => <button key={k} onClick={() => setSp({ tab: k }, { replace: true })} className={cx('rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap', tab === k ? 'bg-navy-900 text-white' : 'text-slate-600 hover:bg-slate-100')}>{l}</button>)}

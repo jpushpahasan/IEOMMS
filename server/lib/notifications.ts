@@ -72,7 +72,7 @@ async function run() {
   }
   // 6. Section-level overdue alerts to the owning team
   const groups: [string, string, string, string][] = [
-    ['medical_overdue', 'a.seq BETWEEN 17 AND 20', 'medical.manage', '/medical'], ['visa_delay', 'a.seq IN (7,21,22,23,24)', 'visa.manage', '/visa'],
+    ['medical_overdue', "a.workflow_key IN ('visa_medical_attended','visa_medical_fit','occ_exam','occ_report')", 'medical.manage', '/medical'], ['visa_delay', "a.workflow_key IN ('entry_permit','health_insurance','residence_applied','eid_biometrics','residence_issued','eid_collected')", 'visa.manage', '/visa'],
     ['training_overdue', `a.section = 'D'`, 'training.manage', '/training'], ['uniform_overdue', `a.section = 'E'`, 'uniform.manage', '/uniform'],
   ];
   for (const [type, cond, perm, link] of groups) {

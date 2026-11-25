@@ -117,11 +117,11 @@ describe('final clearance and deployment', () => {
     assert.equal((await hr.req('POST', `/api/clearance/${cid}/decide`, { decision: 'approve' })).status, 400);
     await finishOnboarding(cid);
     // One open mandatory activity blocks approval and is named in the error
-    await db.query(`UPDATE onboarding_activities SET status = 'in_progress', actual_completion_date = NULL WHERE candidate_id = $1 AND seq = 45`, [cid]);
+    await db.query(`UPDATE onboarding_activities SET status = 'in_progress', actual_completion_date = NULL WHERE candidate_id = $1 AND seq = 46`, [cid]);
     const blocked = await hr.req('POST', `/api/clearance/${cid}/decide`, { decision: 'approve' });
     assert.equal(blocked.status, 400);
     assert.match(blocked.body.error, /site induction/i);
-    await db.query(`UPDATE onboarding_activities SET status = 'completed', actual_completion_date = '2026-11-20' WHERE candidate_id = $1 AND seq = 45`, [cid]);
+    await db.query(`UPDATE onboarding_activities SET status = 'completed', actual_completion_date = '2026-11-20' WHERE candidate_id = $1 AND seq = 46`, [cid]);
     const ev = (await hr.req('GET', `/api/clearance/${cid}`)).body;
     assert.equal(ev.ready, true);
     assert.equal(ev.checks.length, 10);

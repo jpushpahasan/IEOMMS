@@ -147,12 +147,13 @@ export const REPORTS: ReportDef[] = [
   },
   {
     key: 'visa_processing', no: 7, title: 'Visa processing status report', group: 'Medical & visa', dateLabel: 'Residence visa application date',
-    description: 'Entry permit, residence visa and Emirates ID progress per employee, with expiry dates.',
+    description: 'Entry permit, health insurance card, residence visa and Emirates ID progress per employee, with expiry dates.',
     perms: ['reports.view', 'visa.manage'], filters: [...ALL_F],
     columns: [['full_name', 'Name', 'text', 22], ['reference_no', 'Ref', 'text', 14], ['status', 'Stage', 'enum:candidate_status', 18], ['entry_permit_no', 'Entry permit', 'text', 16],
-      ['entry_permit_expiry_date', 'EP expiry', 'date', 11], ['residence_application_date', 'Visa applied', 'date', 11], ['residence_status', 'Residence visa', 'enum:residence_status', 13],
+      ['entry_permit_expiry_date', 'EP expiry', 'date', 11], ['insurance_card_no', 'Insurance card', 'text', 16], ['insurance_expiry_date', 'Insurance expiry', 'date', 11],
+      ['residence_application_date', 'Visa applied', 'date', 11], ['residence_status', 'Residence visa', 'enum:residence_status', 13],
       ['residence_expiry_date', 'Visa expiry', 'date', 11], ['eid_number', 'Emirates ID', 'text', 20], ['eid_biometrics_date', 'Biometrics', 'date', 11], ['eid_state', 'EID status', 'text', 14]],
-    build: (f, p) => `SELECT c.full_name, c.reference_no, c.status, v.entry_permit_no, v.entry_permit_expiry_date, v.residence_application_date, coalesce(v.residence_status, 'not_started') AS residence_status,
+    build: (f, p) => `SELECT c.full_name, c.reference_no, c.status, v.entry_permit_no, v.entry_permit_expiry_date, v.insurance_card_no, v.insurance_expiry_date, v.residence_application_date, coalesce(v.residence_status, 'not_started') AS residence_status,
         v.residence_expiry_date, v.eid_number, v.eid_biometrics_date,
         CASE WHEN v.eid_verified THEN 'Verified' WHEN v.eid_collected_date IS NOT NULL THEN 'Collected' WHEN v.eid_biometrics_date IS NOT NULL THEN 'Biometrics done' ELSE 'Not started' END AS eid_state
       FROM candidates c ${CJ} LEFT JOIN visa_records v ON v.candidate_id = c.id

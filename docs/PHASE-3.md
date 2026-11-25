@@ -5,7 +5,7 @@
 ### Checklist configuration (administrator-maintained)
 | Table | Purpose |
 |---|---|
-| `onboarding_activity_definitions` | The 48 activities of Module 4 (sections A–F): sequence, section, owning department, mandatory flag, *requires supporting document* (+ document category), *requires verification*, planned-date offset and anchor (selection date or arrival date), and `workflow_key` linking it to the module that completes it automatically. Administrators can change department, offsets, mandatory / document / verification rules and add their own activities; the 48 core activities cannot be deleted. |
+| `onboarding_activity_definitions` | The 49 activities of Module 4 (sections A–F): sequence, section, owning department, mandatory flag, *requires supporting document* (+ document category), *requires verification*, planned-date offset and anchor (selection date or arrival date), and `workflow_key` linking it to the module that completes it automatically. Administrators can change department, offsets, mandatory / document / verification rules and add their own activities; the 49 core activities cannot be deleted. |
 | `onboarding_templates` | Named templates scoped to a **trade**, a **project**, both, or neither (default). The most specific active template is applied: trade + project → trade → project → default. |
 | `onboarding_template_items` | Per-template overrides: activity not applicable, mandatory on/off, different offset. |
 | `training_courses` | Course catalogue with a training *category* (technical, competency, HSE, MOHRE awareness, company rules, emergency, client-specific, driving, etc.), duration, validity, provider. |
@@ -30,7 +30,7 @@
 ### Checklist generation
 * Generated automatically when a candidate is registered (existing candidates: "Generate checklists" button / demo data).
 * The matching template decides which activities apply; non-applicable ones are created as **Not Applicable** with the reason "template".
-* Training activities 25–31 apply only when the trade/project actually requires a course of that category (e.g. no client-specific course → activity 31 Not Applicable).
+* Training activities 26–32 apply only when the trade/project actually requires a course of that category (e.g. no client-specific course → activity 32 Not Applicable).
 * Planned dates = anchor + offset. Arrival-anchored activities use the expected joining date until the person arrives, then are re-planned from the actual arrival date.
 * Responsible person = the department's manager, otherwise the first active user of that department (never empty).
 
@@ -61,16 +61,17 @@ Not Applicable: HR (onboarding.verify) with a reason.
 | Arrival confirmed | 11 |
 | HR registration (employee record created) | 16 |
 | Visa medical attended / result *Fit* verified | 17 / 18 |
-| Occupational exam done / fitness report recorded | 19 / 20 |
-| Residence visa applied / issued; EID biometrics / collected & verified | 21 / 23; 22 / 24 |
-| Training passed per category; all required training passed | 25–31; 32 |
-| Measurements recorded; uniform / safety shoes / PPE issued **and acknowledged**; ID card issued | 33; 34 / 35 / 36; 38 |
+| Health insurance card issued (card no. + copy); required before the residence visa application | 19 |
+| Occupational exam done / fitness report recorded | 20 / 21 |
+| Residence visa applied / issued; EID biometrics / collected & verified | 22 / 24; 23 / 25 |
+| Training passed per category; all required training passed | 26–32; 33 |
+| Measurements recorded; uniform / safety shoes / PPE issued **and acknowledged**; ID card issued | 34; 35 / 36 / 37; 39 |
 
-Activities 46–48 (final clearance, deployment approval, reporting to work) are reserved for the Phase 4 clearance & deployment workflow and cannot be completed from the checklist.
+Activities 47–49 (final clearance, deployment approval, reporting to work) are reserved for the Phase 4 clearance & deployment workflow and cannot be completed from the checklist.
 
 ### Candidate lifecycle
 * Arrived in UAE → **Onboarding In Progress** as soon as any onboarding activity from accommodation check-in (13) onwards is completed.
-* When every mandatory, applicable activity up to 45 is completed → **Awaiting Final Clearance**.
+* When every mandatory, applicable activity up to 46 is completed → **Awaiting Final Clearance**.
 
 ### Departmental task management (Module 5)
 * **My tasks**: activities where I am responsible or that belong to my department — filter by pending / overdue / awaiting my verification; update, upload, remark, submit.

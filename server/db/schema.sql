@@ -825,3 +825,34 @@ CREATE TABLE IF NOT EXISTS deployments (
   CONSTRAINT chk_reported CHECK (status <> 'reported' OR (actual_reporting_date IS NOT NULL AND confirmed_by IS NOT NULL))
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_deploy_open ON deployments(candidate_id) WHERE status IN ('requested','approved','reported');
+
+-- ================================================================== Health insurance card (required before the residence visa application)
+ALTER TABLE visa_records ADD COLUMN IF NOT EXISTS insurance_provider     VARCHAR(150);
+ALTER TABLE visa_records ADD COLUMN IF NOT EXISTS insurance_applied_date DATE;
+ALTER TABLE visa_records ADD COLUMN IF NOT EXISTS insurance_policy_no    VARCHAR(60);
+ALTER TABLE visa_records ADD COLUMN IF NOT EXISTS insurance_card_no      VARCHAR(60);
+ALTER TABLE visa_records ADD COLUMN IF NOT EXISTS insurance_issue_date   DATE;
+ALTER TABLE visa_records ADD COLUMN IF NOT EXISTS insurance_expiry_date  DATE;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'employee_documents_category_check3') THEN
+    ALTER TABLE employee_documents DROP CONSTRAINT IF EXISTS employee_documents_category_check2;
+    ALTER TABLE employee_documents ADD CONSTRAINT employee_documents_category_check3 CHECK (category IN (
+      'passport','photograph','offer_letter','employment_contract','work_permit','flight_ticket','visa_medical','occupational_medical',
+      'training_certificate','mohre_training','emirates_id','residence_visa','health_insurance','education_certificate','professional_certificate',
+      'uniform_ppe_ack','invoice','other'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'mobilisation_expenses_category_check2') THEN
+    ALTER TABLE mobilisation_expenses DROP CONSTRAINT IF EXISTS mobilisation_expenses_category_check;
+    ALTER TABLE mobilisation_expenses ADD CONSTRAINT mobilisation_expenses_category_check2 CHECK (category IN ('recruitment_fee','flight_ticket',
+      'airport_transport','visa_processing','medical_exam','health_insurance','emirates_id','occupational_medical','training','accommodation','uniform_ppe','other'));
+  END IF;
+  -- The checklist grew from 48 to 49 steps: the health insurance card is step 19, so the former steps 19-48 move up by one.
+  -- Runs once, on databases created with the 48-step catalogue (its last step, 48, is the reporting confirmation).
+  IF EXISTS (SELECT 1 FROM onboarding_activity_definitions WHERE seq = 48 AND workflow_key = 'deployed')
+     AND NOT EXISTS (SELECT 1 FROM onboarding_activity_definitions WHERE workflow_key = 'health_insurance') THEN
+    UPDATE onboarding_activity_definitions SET seq = -(seq + 1) WHERE seq >= 19;
+    UPDATE onboarding_activity_definitions SET seq = -seq WHERE seq < 0;
+    UPDATE onboarding_activities SET seq = seq + 1 WHERE seq >= 19;
+  END IF;
+END $$;

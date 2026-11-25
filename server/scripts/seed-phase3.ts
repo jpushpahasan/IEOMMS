@@ -41,7 +41,7 @@ export async function seedPhase3(userIds: Record<string, number>) {
 
   // Trade template: nurses get a uniform but no safety shoes / PPE; hospital induction is mandatory earlier.
   const tpl = (await db.one(`INSERT INTO onboarding_templates(name, trade_id, description) VALUES ('Nursing staff', $1, 'Clinical staff: no safety shoes or site PPE; hospital induction within 7 days.') RETURNING id`, [await trade('NRS')]))!.id;
-  for (const [seq, applicable, offset] of [[35, false, null], [36, false, null], [45, true, 7]] as [number, boolean, number | null][]) {
+  for (const [seq, applicable, offset] of [[36, false, null], [37, false, null], [46, true, 7]] as [number, boolean, number | null][]) {
     await db.query(`INSERT INTO onboarding_template_items(template_id, definition_id, is_applicable, offset_days) SELECT $1, id, $2, $3 FROM onboarding_activity_definitions WHERE seq = $4`, [tpl, applicable, offset, seq]);
   }
 
@@ -105,26 +105,29 @@ export async function seedPhase3(userIds: Record<string, number>) {
           await q.query(`INSERT INTO uniform_issues(candidate_id, item_id, size, quantity, issue_date, issued_by, acknowledged, acknowledged_date) VALUES ($1,$2,$3,$4,$5,$6,TRUE,$5)`,
             [c.id, it.id, it.category === 'safety_shoes' ? '42' : it.category === 'uniform' ? 'L' : null, it.default_qty, on(3), userIds.training]);
         }
-        await manual([39, 40, 41], 2);
+        await manual([40, 41, 42], 2);
       }
       if (days >= 6) {
         const rep = await demoDoc(q, req, c.id, 'occupational_medical', 'Occupational medical fitness report');
         await q.query(`UPDATE occupational_medical_records SET fitness = 'fit', report_date = $2, report_document_id = $3, next_review_date = $4 WHERE candidate_id = $1 AND is_current`,
           [c.id, on(5), rep, addDays(arr, 365)]);
+        await q.query(`UPDATE visa_records SET insurance_provider = 'Daman National Health Insurance', insurance_applied_date = $2, insurance_policy_no = $3,
+            insurance_card_no = $4, insurance_issue_date = $2, insurance_expiry_date = $5 WHERE candidate_id = $1`, [c.id, on(4), `POL-${330000 + c.id}`, `HIC-${440000 + c.id}`, addDays(arr, 365)]);
+        await demoDoc(q, req, c.id, 'health_insurance', 'Health insurance card');
         await q.query(`UPDATE visa_records SET residence_application_no = $2, residence_application_date = $3, residence_status = 'applied',
             eid_application_no = $4, eid_biometrics_date = $5 WHERE candidate_id = $1`, [c.id, `RV-${770000 + c.id}`, on(5), `EIDA-${550000 + c.id}`, on(6)]);
         const mo = await demoDoc(q, req, c.id, 'mohre_training', 'MOHRE awareness training record');
         await q.query(`UPDATE training_records tr SET status = 'passed', completed_date = $2, certificate_document_id = $3, trainer = 'MOHRE accredited trainer'
           FROM training_courses tc WHERE tc.id = tr.course_id AND tr.candidate_id = $1 AND tc.category = 'mohre'`, [c.id, on(5), mo]);
-        await manual([42, 43], 4);
+        await manual([43, 44], 4);
       }
       if (days >= 12) {
         await q.query(`UPDATE training_records tr SET status = 'passed', completed_date = $2, score = CASE WHEN tr.requires_assessment THEN 78 END, trainer = 'Technical training centre'
           FROM training_courses tc WHERE tc.id = tr.course_id AND tr.candidate_id = $1 AND tc.category IN ('technical','emergency')`, [c.id, on(9)]);
         const idc = (await q.query(`SELECT id FROM uniform_items WHERE category = 'id_card' LIMIT 1`)).rows[0].id;
-        await manual([37], 6);
+        await manual([38], 6);
         await q.query(`INSERT INTO uniform_issues(candidate_id, item_id, quantity, issue_date, issued_by, acknowledged, acknowledged_date) VALUES ($1,$2,1,$3,$4,TRUE,$3)`, [c.id, idc, on(8), userIds.training]);
-        await manual([44], 5);
+        await manual([45], 5);
       }
       await resync(q, req, c.id);
     });

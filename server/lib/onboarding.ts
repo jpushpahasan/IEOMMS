@@ -131,6 +131,7 @@ async function collectFacts(q: Q, c: Row): Promise<{ facts: Record<string, Fact>
   f.visa_medical_fit = { done: vm?.result === 'fit' && !!vm?.verified_at, date: vm?.result_date, docId: vm?.certificate_document_id };
   f.occ_exam = { done: !!om?.exam_date, date: om?.exam_date };
   f.occ_report = { done: !!om && ['fit', 'fit_with_restrictions'].includes(om.fitness), date: om?.report_date, docId: om?.report_document_id };
+  f.health_insurance = { done: !!vr?.insurance_issue_date && !!vr?.insurance_card_no, date: vr?.insurance_issue_date };
   f.residence_applied = { done: !!vr?.residence_application_date, date: vr?.residence_application_date };
   f.eid_biometrics = { done: !!vr?.eid_biometrics_date, date: vr?.eid_biometrics_date };
   f.residence_issued = { done: vr?.residence_status === 'issued', date: vr?.residence_issue_date };

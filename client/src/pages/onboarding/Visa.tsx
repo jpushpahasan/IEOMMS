@@ -8,7 +8,7 @@ import { Alert, Badge, Button, Card, cx, Empty, Field, Modal, PageHeader, Spinne
 import { Avatar, StatusBadge } from '../Candidates';
 import { form, useSubmit } from './Medical';
 
-const STAGES: [string, string][] = [['', 'All'], ['entry_permit', 'Entry permit'], ['arrival', 'Awaiting residence application'], ['residence', 'Residence visa in process'], ['eid', 'Emirates ID'], ['complete', 'Complete']];
+const STAGES: [string, string][] = [['', 'All'], ['entry_permit', 'Entry permit'], ['insurance', 'Health insurance'], ['arrival', 'Awaiting residence application'], ['residence', 'Residence visa in process'], ['eid', 'Emirates ID'], ['complete', 'Complete']];
 
 export function Visa() {
   const { can, enumLabel, enumTone } = useApp();
@@ -19,17 +19,17 @@ export function Visa() {
   useEffect(load, [load]);
   return (
     <div className="mx-auto max-w-[1500px]">
-      <PageHeader title="Visa & immigration" subtitle="Entry / work permit, residence visa and Emirates ID for every employee." />
+      <PageHeader title="Visa & immigration" subtitle="Entry / work permit, health insurance card, residence visa and Emirates ID for every employee." />
       <Card bodyClass="p-0">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 p-3">
           <div className="scroll-thin flex gap-0.5 overflow-x-auto rounded-lg border border-slate-200 p-0.5">
             {STAGES.map(([v, l]) => <button key={v} onClick={() => setF({ ...f, stage: v })} className={cx('rounded-md px-2.5 py-1 text-xs font-medium whitespace-nowrap', f.stage === v ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-100')}>{l}</button>)}
           </div>
-          <div className="relative min-w-56 flex-1"><Search className="absolute top-2.5 left-3 size-4 text-slate-400" /><input className="input pl-9" placeholder="Employee or Emirates ID…" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} /></div>
+          <div className="relative min-w-56 flex-1"><Search className="absolute top-2.5 left-3 size-4 text-slate-400" /><input className="input pl-9" placeholder="Employee, Emirates ID or insurance card…" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} /></div>
         </div>
         {!rows ? <Spinner /> : rows.length === 0 ? <Empty icon={<IdCard className="size-6" />} title="No employees in this stage" /> : (
           <div className="scroll-thin overflow-x-auto"><table className="min-w-full divide-y divide-slate-100">
-            <thead className="bg-slate-50/80"><tr><th className="th pl-4">Employee</th><th className="th">Entry permit</th><th className="th">Visa medical</th><th className="th">Residence visa</th><th className="th">Emirates ID</th><th className="th" /></tr></thead>
+            <thead className="bg-slate-50/80"><tr><th className="th pl-4">Employee</th><th className="th">Entry permit</th><th className="th">Visa medical</th><th className="th">Health insurance</th><th className="th">Residence visa</th><th className="th">Emirates ID</th><th className="th" /></tr></thead>
             <tbody className="divide-y divide-slate-100">{rows.map((r) => {
               const ed = daysUntil(r.entry_permit_expiry_date);
               return (
@@ -40,6 +40,9 @@ export function Visa() {
                     <div className={cx(ed !== null && ed < 14 && !['arrived', 'onboarding', 'awaiting_clearance'].includes(r.status) ? 'font-semibold text-red-600' : 'text-slate-500')}>expires {fmtDate(r.entry_permit_expiry_date)}</div></>
                     : r.entry_permit_applied_date ? `Applied ${fmtDate(r.entry_permit_applied_date)}` : <span className="text-slate-400">Not applied</span>}</td>
                   <td className="td">{r.vm_result ? <Badge tone={enumTone('visa_medical_result', r.vm_result)}>{enumLabel('visa_medical_result', r.vm_result)}</Badge> : <span className="text-xs text-slate-400">—</span>}</td>
+                  <td className="td text-xs">{r.insurance_issue_date ? <><div className="font-medium">{r.insurance_card_no}</div>
+                    <div className={cx(daysUntil(r.insurance_expiry_date) !== null && daysUntil(r.insurance_expiry_date)! < 30 ? 'font-semibold text-red-600' : 'text-slate-500')}>{r.insurance_provider} · exp. {fmtDate(r.insurance_expiry_date)}</div></>
+                    : r.insurance_applied_date ? `Applied ${fmtDate(r.insurance_applied_date)}` : <span className="text-slate-400">Not applied</span>}</td>
                   <td className="td text-xs"><Badge tone={enumTone('residence_status', r.residence_status || 'not_started')}>{enumLabel('residence_status', r.residence_status || 'not_started')}</Badge>
                     {r.residence_expiry_date && <div className="mt-0.5 text-slate-500">UID {r.uid_no || '—'} · exp. {fmtDate(r.residence_expiry_date)}</div>}</td>
                   <td className="td text-xs">{r.eid_number ? <><div className="font-mono">{r.eid_number}</div><div className={r.eid_verified ? 'text-emerald-700' : 'text-amber-700'}>{r.eid_verified ? 'Collected & verified' : r.eid_collected_date ? 'Collected, not verified' : 'Issued'}</div></>
@@ -55,7 +58,8 @@ export function Visa() {
   );
 }
 
-const KEYS = ['entry_permit_required', 'work_permit_no', 'entry_permit_no', 'entry_permit_applied_date', 'entry_permit_issue_date', 'entry_permit_expiry_date', 'residence_application_no',
+const KEYS = ['entry_permit_required', 'work_permit_no', 'entry_permit_no', 'entry_permit_applied_date', 'entry_permit_issue_date', 'entry_permit_expiry_date', 'insurance_provider', 'insurance_applied_date', 'insurance_policy_no', 'insurance_card_no',
+  'insurance_issue_date', 'insurance_expiry_date', 'residence_application_no',
   'residence_application_date', 'residence_status', 'residence_file_no', 'uid_no', 'residence_issue_date', 'residence_expiry_date', 'eid_application_no', 'eid_biometrics_date',
   'eid_number', 'eid_expiry_date', 'eid_collected_date', 'eid_verified', 'remarks'];
 
@@ -77,6 +81,12 @@ function VisaModal({ r, onClose, onDone }: { r: any; onClose: () => void; onDone
             {inp('work_permit_no', 'MOHRE work permit no.')}{inp('entry_permit_no', 'Entry permit no.')}{inp('entry_permit_applied_date', 'Applied', 'date')}
             {inp('entry_permit_issue_date', 'Issued', 'date')}{inp('entry_permit_expiry_date', 'Expiry', 'date')}
           </div></section>
+        <section><h4 className="mb-2 text-xs font-semibold tracking-wider text-slate-500 uppercase">Health insurance card (after the visa medical; required for the residence visa)</h4>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {inp('insurance_provider', 'Insurance provider', 'text', 'sm:col-span-2')}{inp('insurance_applied_date', 'Applied', 'date')}
+            {inp('insurance_policy_no', 'Policy no.')}{inp('insurance_card_no', 'Card no.')}<div />
+            {inp('insurance_issue_date', 'Card issued', 'date')}{inp('insurance_expiry_date', 'Card expiry', 'date')}
+          </div></section>
         <section><h4 className="mb-2 text-xs font-semibold tracking-wider text-slate-500 uppercase">Residence visa</h4>
           <div className="grid gap-3 sm:grid-cols-3">
             {inp('residence_application_no', 'Application no.')}{inp('residence_application_date', 'Applied', 'date')}
@@ -93,7 +103,7 @@ function VisaModal({ r, onClose, onDone }: { r: any; onClose: () => void; onDone
             {err.eid_verified && <div className="text-xs text-red-600 sm:col-span-3">{err.eid_verified}</div>}
           </div></section>
         <section className="grid gap-3 rounded-lg border border-dashed border-slate-300 p-3 sm:grid-cols-[200px_1fr]">
-          <Field label="Attach a copy of"><select className="input" value={docCat} onChange={(e) => setDocCat(e.target.value)}><option value="">—</option><option value="work_permit">Work / entry permit</option><option value="residence_visa">Residence visa</option><option value="emirates_id">Emirates ID</option></select></Field>
+          <Field label="Attach a copy of"><select className="input" value={docCat} onChange={(e) => setDocCat(e.target.value)}><option value="">—</option><option value="work_permit">Work / entry permit</option><option value="health_insurance">Health insurance card</option><option value="residence_visa">Residence visa</option><option value="emirates_id">Emirates ID</option></select></Field>
           <Field label="File (PDF/JPG/PNG)"><input type="file" accept=".pdf,.jpg,.jpeg,.png" className="input" disabled={!docCat} onChange={(e) => setFile(e.target.files?.[0] || null)} /></Field>
         </section>
         <Field label="Remarks"><textarea rows={2} className="input" value={f.remarks ?? ''} onChange={(e) => setF({ ...f, remarks: e.target.value })} /></Field>

@@ -45,12 +45,12 @@ A notification engine runs on start-up, every hour and on demand. It evaluates t
 E-mail copies go to the outbox when e-mail notifications are enabled in Settings and the user has an address.
 
 ### Final clearance (Module 10)
-The clearance review evaluates ten checks from the checklist: employment documentation verified · immigration formalities · medical examinations · mandatory training · trade competency · uniform & PPE · company induction · accommodation · employee file · project/site induction. The **HR Manager** (`clearance.approve`) approves only when every check passes → activity 46 completed, status **Ready for Deployment**, Operations notified. Rejection requires remarks and is recorded.
+The clearance review evaluates ten checks from the checklist: employment documentation verified · immigration formalities (incl. health insurance card) · medical examinations · mandatory training · trade competency · uniform & PPE · company induction · accommodation · employee file · project/site induction. The **HR Manager** (`clearance.approve`) approves only when every check passes → activity 47 completed, status **Ready for Deployment**, Operations notified. Rejection requires remarks and is recorded.
 
 ### Deployment
 1. Operations (`deployment.manage`) requests deployment: site / location, supervisor, planned reporting date.
-2. HR Manager / Management approves (not the requester) → activity 47 completed.
-3. Operations confirms the **actual reporting to work** → activity 48 completed, status **Deployed**.
+2. HR Manager / Management approves (not the requester) → activity 48 completed.
+3. Operations confirms the **actual reporting to work** → activity 49 completed, status **Deployed**.
 An employee is never marked Deployed just because onboarding finished.
 
 ### Approvals inbox

@@ -39,6 +39,25 @@ export async function bootstrap(opts: { adminPassword?: string; quiet?: boolean 
         SELECT $1,$2,$3,d.id,$4,$5,$6,$7,$8,$9,$10,TRUE FROM departments d WHERE d.code = $11 ON CONFLICT (seq) DO NOTHING`,
       [seq, section, name, mandatory, !!doc, doc, verify, anchor, offset, workflow, dept]);
     }
+    // Steps added to the catalogue after checklists were generated reach existing employees too. Where the employee is already
+    // past that point (residence visa applied, or onboarding finished), the step is recorded as not applicable instead of reopening it.
+    await q.query(`INSERT INTO onboarding_activities(candidate_id, definition_id, seq, section, name, department_id, responsible_user_id, planned_date, status,
+        is_mandatory, requires_document, document_category, requires_verification, workflow_key, anchor, offset_days, na_reason, created_by)
+      SELECT eo.candidate_id, d.id, d.seq, d.section, d.name, d.department_id,
+        coalesce(ref.responsible_user_id, (SELECT min(id) FROM users)),
+        CASE WHEN ref.planned_date IS NOT NULL THEN ref.planned_date - ref.offset_days + d.offset_days END,
+        CASE WHEN past.yes THEN 'not_applicable' ELSE 'not_started' END,
+        d.is_mandatory, d.requires_document, d.document_category, d.requires_verification, d.workflow_key, d.anchor, d.offset_days,
+        CASE WHEN past.yes THEN 'Step added to the checklist after this employee had passed it' END, eo.generated_by
+      FROM employee_onboarding eo
+      JOIN candidates c ON c.id = eo.candidate_id
+      CROSS JOIN onboarding_activity_definitions d
+      LEFT JOIN LATERAL (SELECT a.responsible_user_id, a.planned_date, a.offset_days FROM onboarding_activities a
+        WHERE a.candidate_id = eo.candidate_id AND a.anchor = d.anchor AND a.department_id = d.department_id ORDER BY abs(a.seq - d.seq) LIMIT 1) ref ON TRUE
+      CROSS JOIN LATERAL (SELECT c.status IN ('awaiting_clearance','ready_for_deployment','deployed','cancelled')
+        OR EXISTS (SELECT 1 FROM visa_records v WHERE v.candidate_id = c.id AND v.residence_application_date IS NOT NULL) AS yes) past
+      WHERE d.is_active AND d.workflow_key = 'health_insurance'
+        AND NOT EXISTS (SELECT 1 FROM onboarding_activities x WHERE x.candidate_id = eo.candidate_id AND x.definition_id = d.id)`);
     if (!(await q.query('SELECT 1 FROM training_courses LIMIT 1')).rows.length) {
       for (const [code, name, category, hours, validity] of DEFAULT_COURSES) {
         await q.query('INSERT INTO training_courses(code, name, category, duration_hours, validity_months) VALUES ($1,$2,$3,$4,$5)', [code, name, category, hours, validity]);
@@ -50,7 +69,7 @@ export async function bootstrap(opts: { adminPassword?: string; quiet?: boolean 
       }
     }
     if (!(await q.query('SELECT 1 FROM onboarding_templates LIMIT 1')).rows.length) {
-      await q.query(`INSERT INTO onboarding_templates(name, description) VALUES ('Standard onboarding', 'Default template: all 48 activities apply unless a trade or project template says otherwise.')`);
+      await q.query(`INSERT INTO onboarding_templates(name, description) VALUES ('Standard onboarding', 'Default template: all 49 activities apply unless a trade or project template says otherwise.')`);
     }
 
     if (!(await q.query('SELECT 1 FROM users LIMIT 1')).rows.length) {

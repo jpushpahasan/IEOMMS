@@ -48,7 +48,7 @@ export const ENUMS: Record<string, Opt[]> = {
     { value: 'flight_ticket', label: 'Flight Ticket' }, { value: 'visa_medical', label: 'Visa Medical Fitness Certificate' },
     { value: 'occupational_medical', label: 'Occupational Medical Report' }, { value: 'training_certificate', label: 'Training Certificate' },
     { value: 'mohre_training', label: 'MOHRE Awareness Training Record' }, { value: 'emirates_id', label: 'Emirates ID' },
-    { value: 'residence_visa', label: 'Residence Visa' }, { value: 'education_certificate', label: 'Education Certificate' },
+    { value: 'residence_visa', label: 'Residence Visa' }, { value: 'health_insurance', label: 'Health Insurance Card' }, { value: 'education_certificate', label: 'Education Certificate' },
     { value: 'professional_certificate', label: 'Professional Certificate' }, { value: 'uniform_ppe_ack', label: 'Uniform / PPE Acknowledgement' },
     { value: 'invoice', label: 'Invoice' }, { value: 'other', label: 'Other Document' },
   ],
@@ -123,7 +123,7 @@ export const ENUMS: Record<string, Opt[]> = {
   expense_category: [
     { value: 'recruitment_fee', label: 'Recruitment agency fees' }, { value: 'flight_ticket', label: 'Flight ticket' },
     { value: 'airport_transport', label: 'Airport transportation' }, { value: 'visa_processing', label: 'Visa processing' },
-    { value: 'medical_exam', label: 'Medical examination' }, { value: 'emirates_id', label: 'Emirates ID' },
+    { value: 'medical_exam', label: 'Medical examination' }, { value: 'health_insurance', label: 'Health insurance' }, { value: 'emirates_id', label: 'Emirates ID' },
     { value: 'occupational_medical', label: 'Occupational medical examination' }, { value: 'training', label: 'Training expenses' },
     { value: 'accommodation', label: 'Accommodation expenses' }, { value: 'uniform_ppe', label: 'Uniform and PPE' },
     { value: 'other', label: 'Other mobilisation expenses' },

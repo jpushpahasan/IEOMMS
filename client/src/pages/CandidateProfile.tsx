@@ -235,11 +235,11 @@ function Timeline({ c, history, docs, journey }: { c: any; history: any[]; docs:
       note: alloc ? undefined : 'No bed allocated' },
     { label: 'Accommodation check-in', done: !!alloc?.actual_checkin_date, date: alloc?.actual_checkin_date,
       note: alloc && !alloc.actual_checkin_date ? `Reserved: ${alloc.camp_name}, Room ${alloc.room_number}, Bed ${alloc.bed_number}` : undefined },
-    fromChecklist('Visa medical completed', [17, 18]), fromChecklist('Occupational medical completed', [19, 20]),
-    fromChecklist('Trade training completed', [25, 26, 31, 32]), fromChecklist('MOHRE awareness training completed', [28]),
-    fromChecklist('Residence visa formalities completed', [21, 22, 23, 24]), fromChecklist('Uniform & PPE distributed', [33, 34, 35, 36, 38]),
-    fromChecklist('Company induction completed', [39, 40, 41, 42, 43, 44, 45]),
-    fromChecklist('Final clearance approved', [46]), fromChecklist('Deployment approved', [47]), fromChecklist('Employee deployed (reported to work)', [48]),
+    fromChecklist('Visa medical completed', [17, 18]), fromChecklist('Health insurance card issued', [19]), fromChecklist('Occupational medical completed', [20, 21]),
+    fromChecklist('Trade training completed', [26, 27, 32, 33]), fromChecklist('MOHRE awareness training completed', [29]),
+    fromChecklist('Residence visa formalities completed', [22, 23, 24, 25]), fromChecklist('Uniform & PPE distributed', [34, 35, 36, 37, 39]),
+    fromChecklist('Company induction completed', [40, 41, 42, 43, 44, 45, 46]),
+    fromChecklist('Final clearance approved', [47]), fromChecklist('Deployment approved', [48]), fromChecklist('Employee deployed (reported to work)', [49]),
   ];
   const doneCount = ms.filter((m) => m.done).length;
   return (

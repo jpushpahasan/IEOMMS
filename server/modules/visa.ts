@@ -1,4 +1,4 @@
-// Visa & immigration: entry / work permit, residence visa, Emirates ID.
+// Visa & immigration: entry / work permit, health insurance card, residence visa, Emirates ID.
 import express from 'express';
 import { db, one } from '../db/index.ts';
 import { asyncH, badRequest, toId } from '../lib/http.ts';
@@ -17,6 +17,12 @@ const SCHEMA: Schema = {
   entry_permit_applied_date: { type: 'date', label: 'Entry permit applied' },
   entry_permit_issue_date: { type: 'date', label: 'Entry permit issued' },
   entry_permit_expiry_date: { type: 'date', label: 'Entry permit expiry' },
+  insurance_provider: { type: 'text', label: 'Insurance provider', max: 150 },
+  insurance_applied_date: { type: 'date', label: 'Insurance applied' },
+  insurance_policy_no: { type: 'text', label: 'Policy no.', max: 60 },
+  insurance_card_no: { type: 'text', label: 'Insurance card no.', max: 60 },
+  insurance_issue_date: { type: 'date', label: 'Insurance card issued' },
+  insurance_expiry_date: { type: 'date', label: 'Insurance card expiry' },
   residence_application_no: { type: 'text', label: 'Residence visa application no.', max: 40 },
   residence_application_date: { type: 'date', label: 'Residence visa applied' },
   residence_status: { type: 'enum', label: 'Residence visa status', options: 'residence_status' },
@@ -32,19 +38,19 @@ const SCHEMA: Schema = {
   eid_verified: { type: 'bool', label: 'Emirates ID verified' },
   remarks: { type: 'longtext', label: 'Remarks', max: 2000 },
 };
-const DOC_FOR: Record<string, string> = { work_permit: 'Work / entry permit', residence_visa: 'Residence visa', emirates_id: 'Emirates ID' };
+const DOC_FOR: Record<string, string> = { work_permit: 'Work / entry permit', health_insurance: 'Health insurance card', residence_visa: 'Residence visa', emirates_id: 'Emirates ID' };
 
 visaRouter.get('/visa', requirePerm('visa.manage', 'onboarding.view'), asyncH(async (req, res) => {
   const params: unknown[] = [];
   let w = `c.status IN ('selected','pre_arrival','travel_confirmed','arrived','onboarding','awaiting_clearance','ready_for_deployment','deployed','on_hold') AND NOT c.is_archived`;
-  if (req.query.q) { params.push(`%${req.query.q}%`); w += ` AND (c.full_name ILIKE $${params.length} OR c.reference_no ILIKE $${params.length} OR v.eid_number ILIKE $${params.length})`; }
+  if (req.query.q) { params.push(`%${req.query.q}%`); w += ` AND (c.full_name ILIKE $${params.length} OR c.reference_no ILIKE $${params.length} OR v.eid_number ILIKE ${params.length} OR v.insurance_card_no ILIKE ${params.length})`; }
   const rows = await db.many(`SELECT c.id, c.full_name, c.reference_no, c.nationality, c.status, c.passport_number, c.passport_expiry_date, c.photo_document_id,
       p.name AS project, v.*, v.id AS visa_id, c.id AS candidate_id,
       (SELECT vm.result FROM visa_medical_records vm WHERE vm.candidate_id = c.id AND vm.is_current) AS vm_result
     FROM candidates c JOIN projects p ON p.id = c.project_id LEFT JOIN visa_records v ON v.candidate_id = c.id
     WHERE ${w} ORDER BY c.full_name`, params);
   const stage = (r: any) => (r.eid_verified ? 'complete' : r.residence_status === 'issued' ? 'eid' : r.residence_application_date ? 'residence'
-    : r.entry_permit_issue_date || r.entry_permit_required === false ? 'arrival' : 'entry_permit');
+    : !(r.entry_permit_issue_date || r.entry_permit_required === false) ? 'entry_permit' : !r.insurance_issue_date ? 'insurance' : 'arrival');
   const f = String(req.query.stage || '');
   res.json(rows.map((r) => ({ ...r, stage: stage(r) })).filter((r) => !f || r.stage === f));
 }));
@@ -58,7 +64,7 @@ visaRouter.put('/visa/:candidateId', requirePerm('visa.manage'), upload.single('
   const cid = toId(req.params.candidateId);
   const data = validate(SCHEMA, req.body || {}, true);
   const docCat = String(req.body?.doc_category || '');
-  if (req.file && !DOC_FOR[docCat]) throw badRequest('Choose what the uploaded file is (work permit, residence visa or Emirates ID).');
+  if (req.file && !DOC_FOR[docCat]) throw badRequest('Choose what the uploaded file is (work permit, health insurance card, residence visa or Emirates ID).');
   const row = await withFile(req, (f) => db.tx(async (q) => {
     const c = await one(q, `SELECT id, status, is_archived FROM candidates WHERE id = $1 FOR UPDATE`, [cid]);
     if (!c || c.is_archived || c.status === 'cancelled') throw badRequest('Candidate not found or not active.');
@@ -66,12 +72,21 @@ visaRouter.put('/visa/:candidateId', requirePerm('visa.manage'), upload.single('
     const v = { entry_permit_required: true, residence_status: 'not_started', eid_verified: false, ...(old || {}), ...data } as Record<string, any>;
     const errors: Record<string, string> = {};
     const t = uaeToday();
-    for (const k of ['entry_permit_applied_date', 'entry_permit_issue_date', 'residence_application_date', 'residence_issue_date', 'eid_biometrics_date', 'eid_collected_date']) {
+    for (const k of ['entry_permit_applied_date', 'entry_permit_issue_date', 'insurance_applied_date', 'insurance_issue_date', 'residence_application_date', 'residence_issue_date', 'eid_biometrics_date', 'eid_collected_date']) {
       if (v[k] && v[k] > t) errors[k] = 'Cannot be in the future.';
     }
     if (v.entry_permit_issue_date && v.entry_permit_applied_date && v.entry_permit_issue_date < v.entry_permit_applied_date) errors.entry_permit_issue_date = 'Before the application date.';
     if (v.entry_permit_expiry_date && v.entry_permit_issue_date && v.entry_permit_expiry_date <= v.entry_permit_issue_date) errors.entry_permit_expiry_date = 'Must be after issue.';
     if (v.entry_permit_issue_date && !v.entry_permit_no) errors.entry_permit_no = 'Required once issued.';
+    if (v.insurance_issue_date && v.insurance_applied_date && v.insurance_issue_date < v.insurance_applied_date) errors.insurance_issue_date = 'Before the application date.';
+    if (v.insurance_issue_date && !v.insurance_card_no) errors.insurance_card_no = 'Required once the card is issued.';
+    if (v.insurance_issue_date && !v.insurance_provider) errors.insurance_provider = 'Required once the card is issued.';
+    if (v.insurance_issue_date && !v.insurance_expiry_date) errors.insurance_expiry_date = 'Required once the card is issued.';
+    if (v.insurance_expiry_date && v.insurance_issue_date && v.insurance_expiry_date <= v.insurance_issue_date) errors.insurance_expiry_date = 'Must be after issue.';
+    // The health insurance card is mandatory for the residence visa application (checked when the application is first recorded).
+    if (v.residence_application_date && !old?.residence_application_date && !(v.insurance_issue_date && v.insurance_card_no)) {
+      errors.residence_application_date = 'Issue the health insurance card first: it is required for the residence visa application.';
+    }
     if (v.residence_status !== 'not_started' && !v.residence_application_date) errors.residence_application_date = 'Required once applied.';
     if (['approved', 'issued'].includes(v.residence_status) && !['arrived', 'onboarding', 'awaiting_clearance', 'ready_for_deployment', 'deployed', 'on_hold'].includes(c.status)) {
       errors.residence_status = 'The candidate must have arrived in the UAE.';
@@ -87,9 +102,9 @@ visaRouter.put('/visa/:candidateId', requirePerm('visa.manage'), upload.single('
     if (v.eid_verified && !v.eid_collected_date) errors.eid_verified = 'Collect the card before verifying it.';
     if (Object.keys(errors).length) throw badRequest('Please correct the highlighted fields.', errors);
     if (f) await recordDocument(q, req, cid, f, { category: docCat, title: DOC_FOR[docCat],
-      document_number: docCat === 'emirates_id' ? v.eid_number : docCat === 'residence_visa' ? v.residence_file_no : v.entry_permit_no || v.work_permit_no,
-      issue_date: docCat === 'residence_visa' ? v.residence_issue_date : docCat === 'work_permit' ? v.entry_permit_issue_date : null,
-      expiry_date: docCat === 'residence_visa' ? v.residence_expiry_date : docCat === 'emirates_id' ? v.eid_expiry_date : v.entry_permit_expiry_date });
+      document_number: docCat === 'emirates_id' ? v.eid_number : docCat === 'residence_visa' ? v.residence_file_no : docCat === 'health_insurance' ? v.insurance_card_no : v.entry_permit_no || v.work_permit_no,
+      issue_date: docCat === 'residence_visa' ? v.residence_issue_date : docCat === 'work_permit' ? v.entry_permit_issue_date : docCat === 'health_insurance' ? v.insurance_issue_date : null,
+      expiry_date: docCat === 'residence_visa' ? v.residence_expiry_date : docCat === 'emirates_id' ? v.eid_expiry_date : docCat === 'health_insurance' ? v.insurance_expiry_date : v.entry_permit_expiry_date });
     if (v.eid_verified && !(old?.eid_verified)) {
       const doc = await one(q, `SELECT 1 FROM employee_documents WHERE candidate_id = $1 AND category = 'emirates_id' AND is_current`, [cid]);
       if (!doc) throw badRequest('Upload the Emirates ID copy before marking it verified.', { eid_verified: 'Emirates ID copy required.' });

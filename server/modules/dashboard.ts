@@ -74,9 +74,9 @@ dashboardRouter.get('/dashboard', requirePerm('dashboard.view'), asyncH(async (r
         count(*) FILTER (WHERE a.status NOT IN ('completed','not_applicable'))::int AS pending,
         count(*) FILTER (WHERE a.status NOT IN ('completed','not_applicable') AND a.planned_date < ${today})::int AS overdue,
         count(*) FILTER (WHERE a.status = 'awaiting_approval')::int AS awaiting_approval,
-        count(DISTINCT a.candidate_id) FILTER (WHERE a.section = 'C' AND a.seq IN (17,18,19,20) AND a.status NOT IN ('completed','not_applicable')
+        count(DISTINCT a.candidate_id) FILTER (WHERE a.workflow_key IN ('visa_medical_attended','visa_medical_fit','occ_exam','occ_report') AND a.status NOT IN ('completed','not_applicable')
           AND c.status IN ('arrived','onboarding','awaiting_clearance'))::int AS awaiting_medical,
-        count(DISTINCT a.candidate_id) FILTER (WHERE a.seq IN (21,22,23,24) AND a.status NOT IN ('completed','not_applicable')
+        count(DISTINCT a.candidate_id) FILTER (WHERE a.workflow_key IN ('health_insurance','residence_applied','eid_biometrics','residence_issued','eid_collected') AND a.status NOT IN ('completed','not_applicable')
           AND c.status IN ('arrived','onboarding','awaiting_clearance'))::int AS awaiting_visa,
         count(DISTINCT a.candidate_id) FILTER (WHERE a.section = 'D' AND a.status NOT IN ('completed','not_applicable')
           AND c.status IN ('arrived','onboarding','awaiting_clearance'))::int AS awaiting_training,
