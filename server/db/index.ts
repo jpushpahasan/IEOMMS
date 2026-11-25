@@ -16,6 +16,8 @@ interface Impl extends Q {
   close: () => Promise<void>;
   /** Embedded database only: compressed copy of the data directory, taken between queries. */
   dump?: () => Promise<Buffer>;
+  /** Runs the schema script in one transaction, serialised across processes (several serverless instances may start together). */
+  migrate?: (sql: string) => Promise<void>;
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -28,7 +30,7 @@ async function initPg(): Promise<Impl> {
   pg.types.setTypeParser(OID.DATE, (v: string) => v);
   pg.types.setTypeParser(OID.TIMESTAMP, (v: string) => v);
   pg.types.setTypeParser(OID.INT8, (v: string) => (v === null ? null : Number(v)));
-  const pool = new pg.Pool({ connectionString: config.databaseUrl, max: 10, ssl: config.databaseSsl ? { rejectUnauthorized: false } : undefined });
+  const pool = new pg.Pool({ connectionString: config.databaseUrl, max: process.env.VERCEL ? 3 : 10, ssl: config.databaseSsl ? { rejectUnauthorized: false } : undefined });
   pool.on('connect', (c) => { c.query("SET TIME ZONE 'Asia/Dubai'"); });
   return {
     kind: 'postgresql',
@@ -41,6 +43,22 @@ async function initPg(): Promise<Impl> {
         const out = await fn({ query: (s, p = []) => client.query(s, p as any[]) });
         await client.query('COMMIT');
         return out;
+      } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+      } finally {
+        client.release();
+      }
+    },
+    async migrate(sql) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('SELECT pg_advisory_xact_lock(41004100)');
+        await client.query(sql);
+        // Make UAE time the database default, so every session (including pooled ones) uses it.
+        await client.query("DO $$ BEGIN EXECUTE format('ALTER DATABASE %I SET timezone = %L', current_database(), 'Asia/Dubai'); EXCEPTION WHEN insufficient_privilege THEN NULL; END $$");
+        await client.query('COMMIT');
       } catch (e) {
         await client.query('ROLLBACK');
         throw e;
@@ -85,7 +103,8 @@ async function initPglite(dir: string): Promise<Impl> {
 export async function initDb(opts: { pgliteDir?: string } = {}) {
   if (impl) return impl;
   impl = config.databaseUrl ? await initPg() : await initPglite(opts.pgliteDir || config.pgliteDir);
-  await impl.exec(fs.readFileSync(path.join(here, 'schema.sql'), 'utf8'));
+  const schema = fs.readFileSync(path.join(here, 'schema.sql'), 'utf8');
+  await (impl.migrate ? impl.migrate(schema) : impl.exec(schema));
   return impl;
 }
 

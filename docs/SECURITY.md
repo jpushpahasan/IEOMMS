@@ -16,7 +16,7 @@ Result at the end of Phase 5: **all security tests pass** (55/55 tests in the fu
 | Segregation of duties | Approvers cannot approve their own requests (flights, activity verification, expenses, deployment) unless granted `approvals.self` | phase 2–4 tests |
 | Injection | All SQL is parameterised; sort columns, table names and report definitions come from fixed allow-lists; filters are validated | injection test (search, sort, filter, report params) |
 | CSRF | SameSite=Strict cookie plus rejection of cross-origin state-changing requests | header test |
-| Uploads | File type detected from content (PDF / JPG / PNG only), 10 MB limit, random stored names outside the web root, served only through permission-checked routes with `nosniff` | upload test |
+| Uploads | File type detected from content (PDF / JPG / PNG only), 4 MB limit, random stored names outside the web root, served only through permission-checked routes with `nosniff` | upload test |
 | Headers | Content-Security-Policy, `X-Content-Type-Options: nosniff`, frame protection, no `X-Powered-By`, `Cache-Control: no-store` on API responses | header test |
 | Error handling | Internal errors return a generic message; details are logged server-side only; malformed JSON → 400 | error test |
 | Audit | Every change, status move, approval, upload, download, export, login and failed login is written to `audit_logs` with old/new values (secrets stripped) | audit tests (phase 1, 5) |

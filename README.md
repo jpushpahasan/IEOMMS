@@ -31,6 +31,9 @@ Run behind HTTPS (cookies are marked `Secure` in production). Settings: `PORT`, 
 `SESSION_HOURS`, `MAX_UPLOAD_MB`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`, `LOGIN_RATE_LIMIT`,
 `SMTP_URL` / `SMTP_FROM` (e-mail notifications; without them e-mails are held in the outbox), `NOTIFICATIONS=off` (disable the hourly notification run).
 
+## Deploying on Vercel
+See [docs/DEPLOY-VERCEL.md](docs/DEPLOY-VERCEL.md): Neon Postgres for the database, private Vercel Blob for documents, Vercel Cron for daily reminders, and `npm run db:migrate-to-vercel` to copy existing data.
+
 ## Backups
 The running server backs up the database and uploaded documents every day after 02:00 GST (`BACKUP_HOUR`) into `data/backups`, keeping the latest 30 (`BACKUP_KEEP`); administrators can also run a backup from Settings. `npm run backup` does the same while the server is stopped.
 Schedule it daily (Windows Task Scheduler / cron). With an external PostgreSQL server, use `pg_dump` and back up `data/uploads`.

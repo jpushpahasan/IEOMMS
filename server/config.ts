@@ -16,7 +16,8 @@ export const config = {
   uploadDir: path.join(dataDir, 'uploads'),
   backupDir: path.join(dataDir, 'backups'),
   sessionHours: Number(env.SESSION_HOURS || 10),
-  maxUploadMb: Number(env.MAX_UPLOAD_MB || 10),
+  // 4 MB: Vercel functions accept request bodies up to 4.5 MB.
+  maxUploadMb: Number(env.MAX_UPLOAD_MB || 4),
   // Initial super administrator (created only when the users table is empty).
   adminUsername: env.ADMIN_USERNAME || 'admin',
   adminPassword: env.ADMIN_PASSWORD || '',

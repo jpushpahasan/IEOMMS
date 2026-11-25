@@ -1,4 +1,5 @@
 // IEOMMS — API server
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,11 +34,23 @@ import { clearanceRouter } from './modules/clearance.ts';
 import { reportsRouter } from './modules/reports.ts';
 import { refreshNotifications } from './lib/notifications.ts';
 import { listBackups, runBackup, scheduleBackups } from './lib/backup.ts';
+import { storageKind } from './lib/storage.ts';
+
+/** On Vercel the file system is temporary: the database provider keeps the backups instead. */
+const backupsManaged = Boolean(process.env.VERCEL);
 import { requirePerm } from './lib/auth.ts';
+
+/** Database connection + bootstrap, done once per process (on Vercel: per function instance, on first request). */
+let readyP: Promise<void> | null = null;
+export function ready() {
+  readyP ??= (async () => { await initDb(); await bootstrap(); })().catch((e) => { readyP = null; throw e; });
+  return readyP;
+}
 
 export const app = express();
 app.set('trust proxy', config.isProd ? 1 : false);
 app.disable('x-powered-by');
+app.use((_req, _res, next) => { ready().then(() => next(), next); });
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -83,7 +96,18 @@ app.post('/api/auth/logout', asyncH(async (req, res) => {
   res.json({ ok: true });
 }));
 
-app.get('/api/health', asyncH(async (_req, res) => { await db.query('SELECT 1'); res.json({ ok: true, db: db.kind }); }));
+app.get('/api/health', asyncH(async (_req, res) => { await db.query('SELECT 1'); res.json({ ok: true, db: db.kind, storage: storageKind }); }));
+
+// Daily job for hosts without a long-running process (Vercel Cron calls it with "Authorization: Bearer $CRON_SECRET").
+app.get('/api/cron/daily', asyncH(async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) console.warn('[cron] CRON_SECRET is not configured: the daily job cannot run.');
+  const given = Buffer.from(String(req.headers.authorization || ''));
+  const want = Buffer.from(`Bearer ${secret}`);
+  if (!secret || given.length !== want.length || !crypto.timingSafeEqual(given, want)) throw new AppError(401, 'Not authorised.');
+  await refreshNotifications();
+  res.json({ ok: true, at: new Date().toISOString() });
+}));
 
 app.use('/api', requireAuth);
 
@@ -127,8 +151,9 @@ app.use('/api', financeRouter);
 app.use('/api', notificationsRouter);
 app.use('/api', clearanceRouter);
 app.use('/api', reportsRouter);
-app.get('/api/admin/backups', requirePerm('settings.manage'), asyncH(async (_req, res) => res.json({ backups: listBackups(), database: db.kind })));
+app.get('/api/admin/backups', requirePerm('settings.manage'), asyncH(async (_req, res) => res.json({ backups: backupsManaged ? [] : listBackups(), database: db.kind, managed: backupsManaged })));
 app.post('/api/admin/backups', requirePerm('settings.manage'), asyncH(async (req, res) => {
+  if (backupsManaged) throw badRequest('Backups are handled by the hosted database provider (Neon); in-app backups are not available on this server.');
   const r = await runBackup('manual');
   await audit(db, req, 'backup', 'system', null, null, r);
   res.json(r);
@@ -157,8 +182,7 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
 
 // ------------------------------------------------------------------ start
 export async function start(port = config.port) {
-  await initDb();
-  await bootstrap();
+  await ready();
   if (process.env.BACKUPS !== 'off') scheduleBackups();
   if (process.env.NOTIFICATIONS !== 'off') {
     refreshNotifications().catch((e) => console.error('[notifications]', e.message));

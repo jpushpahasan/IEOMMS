@@ -309,7 +309,7 @@ mobilityRouter.post('/bookings/:id/issue', requirePerm('mobility.manage'), uploa
     arrival_terminal: { type: 'text', label: 'Terminal', max: 20 },
   }, req.body || {});
   data.flight_number = String(data.flight_number).toUpperCase();
-  const f = storeUpload(req.file);
+  const f = await storeUpload(req.file);
   try {
     await db.tx(async (q) => {
       const b = await lockBooking(q, id);

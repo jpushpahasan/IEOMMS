@@ -50,7 +50,7 @@ async function candidateFor(q: Q, id: unknown) {
   return c;
 }
 async function withFile<T>(req: Request, fn: (f: StoredFile | null) => Promise<T>) {
-  const f = req.file ? storeUpload(req.file) : null;
+  const f = req.file ? await storeUpload(req.file) : null;
   try { return await fn(f); } catch (e) { if (f) removeStored(f); throw e; }
 }
 async function saveRow(q: Q, req: Request, table: string, old: Row | null, data: Record<string, unknown>) {

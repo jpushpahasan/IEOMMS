@@ -170,6 +170,12 @@ function Backups() {
   const load = () => api.get('/admin/backups').then(setD).catch(() => setD(null));
   useEffect(() => { load(); }, []);
   if (!d) return null;
+  if (d.managed) return (
+    <div className="mt-6 border-t border-slate-100 pt-4">
+      <h4 className="mb-2 text-xs font-semibold tracking-wider text-slate-500 uppercase">Database backups</h4>
+      <p className="text-xs text-slate-500">This server uses a hosted database: backups and point-in-time restore are provided by the database service (Neon console → your project → Backup &amp; Restore). Documents are kept in Vercel Blob storage.</p>
+    </div>
+  );
   const run = async () => { setBusy(true); try { const r = await api.post('/admin/backups'); toast(r.status === 'ok' ? 'success' : 'error', r.status === 'ok' ? `Backup ${r.name} completed.` : `Backup failed: ${r.error}`); load(); } finally { setBusy(false); } };
   return (
     <div className="mt-6 border-t border-slate-100 pt-4">

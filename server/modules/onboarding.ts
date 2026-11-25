@@ -110,7 +110,7 @@ async function isDeptManager(q: Q, req: Request, deptId: number) {
 
 onboardingRouter.post('/onboarding/activities/:id/document', requirePerm('onboarding.update'), upload.single('file'), asyncH(async (req, res) => {
   const id = toId(req.params.id);
-  const f = storeUpload(req.file);
+  const f = await storeUpload(req.file);
   try {
     await db.tx(async (q) => {
       const a = await lockActivity(q, id);

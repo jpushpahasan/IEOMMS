@@ -16,10 +16,12 @@
         "db:reset": "node server/scripts/reset.ts",
         "db:demo": "node server/scripts/reset.ts --demo",
         "backup": "node server/scripts/backup.ts",
-        "test": "node --test server/tests/"
+        "test": "node --test server/tests/",
+        "db:migrate-to-vercel": "node server/scripts/migrate-to-vercel.ts"
     },
     "dependencies": {
         "@electric-sql/pglite": "0.2.17",
+        "@vercel/blob": "2.9.0",
         "bcryptjs": "2.4.3",
         "cookie-parser": "1.4.7",
         "exceljs": "4.4.0",

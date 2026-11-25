@@ -39,7 +39,7 @@ Constraints: unique reference number; one active (not archived, not cancelled) c
 1. Recruitment / HR opens **Candidates → New candidate**, completes sections A–C (required: name, gender, DOB, nationality, passport number/country/dates, position, trade, project, selection date).
 2. Server validates every field and returns all errors at once. Warnings (not blockers): passport valid for less than 6 months from expected joining date; candidate under 18 or over 65.
 3. On save, a reference number is issued inside the same transaction, status = **Selected**, history and audit rows written.
-4. Passport copy, photograph and other documents (PDF/JPG/PNG ≤ 10 MB) are uploaded from the profile; the photograph becomes the profile picture.
+4. Passport copy, photograph and other documents (PDF/JPG/PNG ≤ 4 MB) are uploaded from the profile; the photograph becomes the profile picture.
 
 ### Excel import
 1. Download the template (columns + a "Lists" sheet with valid trades, projects, agencies, departments).

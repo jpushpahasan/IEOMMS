@@ -1,7 +1,5 @@
 // Employee document store (foundation of Module 6). Files live outside the web root and are
 // only served through these permission-checked routes.
-import fs from 'node:fs';
-import path from 'node:path';
 import crypto from 'node:crypto';
 import express, { type Request } from 'express';
 import multer from 'multer';
@@ -14,6 +12,7 @@ import { audit } from '../lib/audit.ts';
 import { validate } from '../lib/validate.ts';
 import { resync } from '../lib/onboarding.ts';
 import { getSettings } from '../lib/settings.ts';
+import { deleteFile, openFile, putFile } from '../lib/storage.ts';
 
 /** Categories where a person holds one document at a time: a new upload supersedes the old one (new version). */
 export const SINGLE = new Set(['passport', 'photograph', 'offer_letter', 'employment_contract', 'work_permit', 'visa_medical',
@@ -45,17 +44,17 @@ documentsRouter.get('/candidates/:id/documents', requirePerm('documents.view'), 
 export interface StoredFile { stored: string; mime: string; ext: string; original: string; size: number; hash: string }
 
 /** Validates the file by content and writes it to storage. Call removeStored() if the database step fails. */
-export function storeUpload(file: Express.Multer.File | undefined, opts: { imageOnly?: boolean } = {}): StoredFile {
+export async function storeUpload(file: Express.Multer.File | undefined, opts: { imageOnly?: boolean } = {}): Promise<StoredFile> {
   if (!file) throw badRequest('Choose a file to upload.', { file: 'Required.' });
   const kind = sniff(file.buffer);
   if (!kind) throw badRequest('Only PDF, JPG and PNG files are accepted.', { file: 'Only PDF, JPG or PNG.' });
   if (opts.imageOnly && kind.mime === 'application/pdf') throw badRequest('This must be a JPG or PNG image.', { file: 'JPG or PNG only.' });
   const stored = `${crypto.randomUUID()}${kind.ext}`;
-  fs.mkdirSync(config.uploadDir, { recursive: true });
-  fs.writeFileSync(path.join(config.uploadDir, stored), file.buffer, { flag: 'wx' });
+  await putFile(stored, file.buffer, kind.mime);
   return { stored, mime: kind.mime, ext: kind.ext, original: file.originalname.slice(0, 255), size: file.size, hash: sha256(file.buffer) };
 }
-export const removeStored = (f: StoredFile) => fs.rmSync(path.join(config.uploadDir, f.stored), { force: true });
+/** Best-effort clean-up of a stored file whose database step failed. */
+export const removeStored = (f: StoredFile) => { deleteFile(f.stored).catch((e) => console.error('[storage]', e.message)); };
 
 /** Inserts a document row inside the caller's transaction, versioning single-instance categories. */
 export async function recordDocument(q: Q, req: Request, candidateId: number, f: StoredFile, meta: Record<string, any>) {
@@ -98,7 +97,7 @@ documentsRouter.post('/candidates/:id/documents', requirePerm('documents.upload'
     replaces_id: { type: 'ref', label: 'Document to replace' },
   }, req.body || {});
   if (meta.issue_date && meta.expiry_date && String(meta.expiry_date) <= String(meta.issue_date)) throw badRequest('Expiry date must be after the issue date.', { expiry_date: 'Must be after issue date.' });
-  const f = storeUpload(req.file, { imageOnly: meta.category === 'photograph' });
+  const f = await storeUpload(req.file, { imageOnly: meta.category === 'photograph' });
   try {
     const row = await db.tx(async (q) => {
       const d = await recordDocument(q, req, candidateId, f, meta);
@@ -155,13 +154,13 @@ documentsRouter.get('/documents/:id/file', asyncH(async (req, res) => {
   // Profile photographs are visible to anyone who can see the candidate; everything else needs documents.view.
   const allowed = can(req.user, 'documents.view') || (d.category === 'photograph' && can(req.user, 'candidates.view'));
   if (!allowed) throw forbidden();
-  const file = path.join(config.uploadDir, d.stored_name);
-  if (!fs.existsSync(file)) throw notFound('The file is missing from storage. Please re-upload it.');
+  const file = await openFile(d.stored_name);
+  if (!file) throw notFound('The file is missing from storage. Please re-upload it.');
   const download = req.query.download === '1';
   if (download) await audit(db, req, 'document_download', 'employee_documents', d.id, null, { candidate_id: d.candidate_id, category: d.category });
   res.setHeader('Content-Type', d.mime_type);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Cache-Control', 'private, max-age=300');
   res.setHeader('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${encodeURIComponent(d.original_name)}"`);
-  fs.createReadStream(file).pipe(res);
+  file.on('error', (e) => { console.error('[storage]', e.message); res.destroy(e); }).pipe(res);
 }));

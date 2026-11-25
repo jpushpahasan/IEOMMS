@@ -450,7 +450,7 @@ function UploadModal({ candidateId, init, onClose, onDone }: { candidateId: numb
             {options!.enums.document_category.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </Field>
-        <Field label="File (PDF, JPG or PNG, max 10 MB)" required error={err.file} className="sm:col-span-2">
+        <Field label="File (PDF, JPG or PNG, max 4 MB)" required error={err.file} className="sm:col-span-2">
           <input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" className="input file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1 file:text-sm" onChange={(e) => setFile(e.target.files?.[0] || null)} />
         </Field>
         <Field label="Title / description" error={err.title} className="sm:col-span-2"><input className="input" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></Field>
