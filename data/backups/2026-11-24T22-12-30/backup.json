@@ -1,0 +1,9 @@
+{
+  "started_at": "2026-11-24T22:12:30.011Z",
+  "reason": "scheduled",
+  "database": "pglite",
+  "database_bytes": 5187362,
+  "documents": 16,
+  "status": "ok",
+  "finished_at": "2026-11-24T22:12:31.366Z"
+}
